@@ -3,7 +3,7 @@
 **Author:** Jozef Fulop  
 **Institution:** UCT in Prague  
 
-Welcome to the repository for my diploma thesis. This project explores both ensemble and graph neural network (GNN) models applied to cheminformatics data. The repository includes documentation, code, and data resources aimed at researchers and students interested in machine learning and cheminformatics.
+Welcome to the repository for my diploma thesis. This project explores both ensemble and graph neural network (GNN) models applied to cheminformatics data. The repository includes documentation, code, and data resources aimed in machine learning and cheminformatics.
 
 ## Data
 
