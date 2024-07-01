@@ -26,7 +26,7 @@ The primary objective of this research is to develop, train, and evaluate advanc
      
 2. **Model Architectures:**  
    - **Ensemble Models:**  
-     - Built novel ensemble architectures tailored for cheminformatics data.  
+     - Ensemble architectures tailored for cheminformatics data.  
    - **Graph Neural Networks (GNNs):**  
      - Implemented advanced GNN architectures such as Gated Graph Neural Network, GATv2Conv, and SaGEConv.  
 
