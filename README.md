@@ -29,6 +29,7 @@ The primary objective of this research is to develop, train, and evaluate advanc
      - Ensemble architectures tailored for cheminformatics data.  
    - **Graph Neural Networks (GNNs):**  
      - Implemented advanced GNN architectures such as Gated Graph Neural Network, GATv2Conv, and SaGEConv.  
+     - An [IPython Notebook for creating graph representations from molecules](models/gnn/mol2graphs.ipynb) is provided to demonstrate the conversion of molecular data into graph structures.
 
 3. **Feature Engineering and Property Analysis:**  
    - Used RDKit to compute molecular properties like molecular weight, ClogP, and hydrogen bond acceptors/donors.
@@ -40,25 +41,24 @@ The primary objective of this research is to develop, train, and evaluate advanc
 
 ### Key Contributions
 
-1. **Innovative Model Architectures:**  
-   - Unique GNN and ensemble architectures tailored to cheminformatics.
+1. **Model Architectures:**  
+   - GNN and ensemble architectures tailored to cheminformatics.
 
 2. **Dataset Curation:**  
    - Comprehensive pre-processing and curation of diverse molecular datasets.
 
 3. **Performance Evaluation:**  
-   - Rigorous evaluation through performance metrics and visualization.
+   - Evaluation through performance metrics and visualization.
 
 ## Directory Structure
 
 The repository is structured into the following directories:
 
-- `docs`: Contains thesis documentation and related information.
 - `models`:  
   - **Ensemble:** Ensemble model configurations and results.  
-  - **GNN:** Graph neural network models with results.  
+  - **GNN:** Graph neural network models with results.
 - `notebooks`:  
-  - Analysis notebooks for data exploration, feature engineering, and modeling.  
+  - Analysis notebooks for data exploration, feature engineering, and modeling.
 - `output`:  
-  - Final outputs like figures, tables, scaffold analysis, and model validation metrics.  
+  - Final outputs like figures, tables, scaffold analysis, and model validation metrics.
 
