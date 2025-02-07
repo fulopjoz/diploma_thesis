@@ -9,6 +9,9 @@ Welcome to the repository for my diploma thesis. This project explores both ense
 
 The raw and machine learning datasets for **Set 1** and **Set 2** are hosted externally due to their size. You can access them via the following link: [Dataset Link](https://owncloud.cesnet.cz/index.php/s/juPLpmojqktq0IU).
 
+## Notebooks
+**Additional notebooks and processing using GNN** can be found here: [Github Repo for GNN](https://github.com/fulopjoz/gnn-rna-ligands-thesis/tree/master)
+
 ## Project Overview
 
 ### Objectives
@@ -17,7 +20,6 @@ The primary objective of this research is to develop, train, and evaluate advanc
 
 - **Ensemble Learning Techniques:** Application for molecular classification tasks.
 - **Graph Neural Networks (GNNs):** Exploration of their effectiveness in molecular classification.
-  - **Additional notebooks and processing using GNN** can be found here: [Github Repo for GNN](https://github.com/fulopjoz/gnn-rna-ligands-thesis/tree/master)
 
 ### Methodology
 
