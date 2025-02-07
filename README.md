@@ -17,6 +17,7 @@ The primary objective of this research is to develop, train, and evaluate advanc
 
 - **Ensemble Learning Techniques:** Application for molecular classification tasks.
 - **Graph Neural Networks (GNNs):** Exploration of their effectiveness in molecular classification.
+  - **Additional notebooks and processing using GNN** can be found here: [Github Repo for GNN](https://github.com/fulopjoz/gnn-rna-ligands-thesis/tree/master)
 
 ### Methodology
 
