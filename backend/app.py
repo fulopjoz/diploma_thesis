@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from contextlib import asynccontextmanager
 import joblib
 import numpy as np
 from rdkit import Chem
@@ -19,11 +20,31 @@ import os
 # Disable RDKit warnings
 RDLogger.DisableLog('rdApp.error')
 
-# Initialize FastAPI app
+# Load the pre-trained model
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "ensemble", "set1", "best_xgb.joblib")
+model = None
+
+# Load model on startup using lifespan for FastAPI 0.109+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load the XGBoost model on startup and cleanup on shutdown."""
+    global model
+    try:
+        model = joblib.load(MODEL_PATH)
+        print(f"Model loaded successfully from {MODEL_PATH}")
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        raise
+    yield
+    # Cleanup (if needed)
+    print("Shutting down...")
+
+# Initialize FastAPI app with lifespan
 app = FastAPI(
     title="RNA/Protein Binding Classifier",
     description="Binary classification of molecules as RNA-binding or Protein-binding",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Enable CORS for frontend integration
@@ -34,21 +55,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Load the pre-trained model
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "ensemble", "set1", "best_xgb.joblib")
-model = None
-
-@app.on_event("startup")
-async def load_model():
-    """Load the XGBoost model on startup."""
-    global model
-    try:
-        model = joblib.load(MODEL_PATH)
-        print(f"Model loaded successfully from {MODEL_PATH}")
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        raise
 
 
 # Pydantic models for request/response

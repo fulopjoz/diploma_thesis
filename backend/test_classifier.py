@@ -6,15 +6,16 @@ This script tests the basic functionality of the classifier without starting the
 
 import sys
 import os
+import joblib
 
 # Add parent directory to path to import app
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import smiles_to_ecfp6, classify_molecule, model, load_model
-import asyncio
+from app import smiles_to_ecfp6, classify_molecule, MODEL_PATH
+import app as app_module
 
 
-async def test_classifier():
+def test_classifier():
     """Test the classifier with sample molecules."""
     
     print("=" * 60)
@@ -24,7 +25,7 @@ async def test_classifier():
     # Load model
     print("\n1. Loading model...")
     try:
-        await load_model()
+        app_module.model = joblib.load(MODEL_PATH)
         print("   ✓ Model loaded successfully")
     except Exception as e:
         print(f"   ✗ Error loading model: {e}")
@@ -92,4 +93,4 @@ async def test_classifier():
 
 
 if __name__ == "__main__":
-    asyncio.run(test_classifier())
+    test_classifier()
