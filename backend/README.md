@@ -371,6 +371,84 @@ If port 8000 is already in use, specify a different port:
 uvicorn app:app --port 8080
 ```
 
+## Example Scripts and Utilities
+
+The `backend/` directory includes several utility scripts to help you get started:
+
+### Test Script
+
+Run the basic test to verify the installation:
+```bash
+python test_classifier.py
+```
+
+This will:
+- Load the model
+- Test SMILES to fingerprint conversion
+- Classify several example molecules
+- Verify error handling
+
+### Example Client
+
+A Python client library for easy API integration:
+```bash
+python example_client.py
+```
+
+The `example_client.py` module provides a `RNAProteinClassifierClient` class that you can import into your own projects:
+
+```python
+from example_client import RNAProteinClassifierClient
+
+client = RNAProteinClassifierClient("http://localhost:8000")
+result = client.classify_molecule("c1ccccc1")
+print(f"Prediction: {result['prediction']}")
+```
+
+### Complete Demo
+
+Run a comprehensive demonstration of all features:
+```bash
+python demo.py
+```
+
+This will:
+- Perform health checks
+- Classify molecules from different categories
+- Generate batch predictions
+- Attempt PubChem integration (if internet available)
+- Create visualization reports
+
+### Visualization Tools
+
+The `visualize.py` module provides functions to create plots and reports:
+
+```python
+from visualize import generate_report
+
+# After getting results from the API
+generate_report(results_data, output_dir="/tmp/my_report")
+```
+
+This generates:
+- Probability distribution plots
+- Confidence score visualizations
+- Classification summary pie charts
+- Statistical summary text files
+
+### Quick Start Script
+
+Use the automated startup script:
+```bash
+./start.sh
+```
+
+This will:
+- Create and activate a virtual environment
+- Install dependencies
+- Run tests
+- Start the API server
+
 ## License
 
 See the main repository LICENSE file.
