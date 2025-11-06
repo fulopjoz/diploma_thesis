@@ -64,4 +64,71 @@ The repository is structured into the following directories:
   - Analysis notebooks for data exploration, feature engineering, and modeling.
 - `output`:  
   - Final outputs like figures, tables, scaffold analysis, and model validation metrics.
+- `backend`:  
+  - **Web API:** FastAPI-based backend for molecule classification (NEW!)
+
+## Backend Web Application
+
+A production-ready web API has been developed to make the classification model easily accessible. The backend provides REST endpoints for classifying molecules as RNA-binding or Protein-binding.
+
+### Features
+
+- **REST API**: FastAPI-based web service with automatic documentation
+- **Multiple Endpoints**: Single molecule, batch processing, and PubChem integration
+- **Real-time Classification**: Instant predictions with probability scores
+- **Easy Integration**: CORS-enabled for frontend applications
+- **Containerized**: Docker and Docker Compose support for easy deployment
+
+### Quick Start
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the server
+python app.py
+# or
+uvicorn app:app --reload
+```
+
+The API will be available at `http://localhost:8000` with interactive documentation at `http://localhost:8000/docs`.
+
+### API Usage Examples
+
+**Classify a single molecule:**
+```bash
+curl -X POST "http://localhost:8000/api/classify" \
+  -H "Content-Type: application/json" \
+  -d '{"smiles": "c1ccccc1"}'
+```
+
+**Batch classification:**
+```bash
+curl -X POST "http://localhost:8000/api/classify/batch" \
+  -H "Content-Type: application/json" \
+  -d '{"smiles_list": ["c1ccccc1", "CCO", "CC(=O)O"]}'
+```
+
+**Fetch from PubChem and classify:**
+```bash
+curl -X POST "http://localhost:8000/api/classify/pubchem" \
+  -H "Content-Type: application/json" \
+  -d '{"compound_ids": ["2244", "aspirin"]}'
+```
+
+For complete documentation, see [backend/README.md](backend/README.md).
+
+### Docker Deployment
+
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+
+# Or build manually
+docker build -t rna-classifier .
+docker run -p 8000:8000 rna-classifier
+```
 

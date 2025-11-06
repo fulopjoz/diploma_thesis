@@ -1,0 +1,29 @@
+# Backend Requirements
+# Python packages required for the RNA/Protein binding classifier backend
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Machine Learning
+joblib==1.3.2
+scikit-learn==1.4.0
+xgboost==2.0.3
+numpy==1.26.3
+
+# Chemistry
+rdkit==2023.9.4
+
+# Chemical Database Integration
+pubchempy==1.0.4
+
+# Data Processing
+pandas==2.2.0
+
+# HTTP Client
+httpx==0.26.0
+requests==2.31.0
+
+# Validation
+pydantic==2.5.3
