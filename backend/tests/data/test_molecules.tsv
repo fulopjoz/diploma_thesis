@@ -1,0 +1,6 @@
+smiles	name	activity
+c1ccccc1	Benzene	active
+CCO	Ethanol	inactive
+CC(=O)O	Acetic_acid	active
+c1ccc2c(c1)ccc3c2nccc3	Acridine	active
+invalid_smiles	Invalid	unknown

@@ -1,0 +1,11 @@
+Murcko_scafold,count,source
+c1ccccc1,40,RNA binders
+c1ccc(CNc2ncc(-c3ccccc3)[nH]2)cc1,36,RNA binders
+c1ccc(CNCc2ccccc2)cc1,27,RNA binders
+c1ccc(CCNCc2ccccc2)cc1,24,RNA binders
+c1ccc(-c2nc3ccccc3o2)cc1,22,RNA binders
+c1ccc(Nc2ccnc3ccccc23)cc1,19,RNA binders
+O=C(CCc1cnc2ncnn2c1)Nc1ccccc1,14,RNA binders
+O=S(=O)(c1ccccc1)c1coc(-c2ccccc2)n1,12,RNA binders
+c1ccc(-c2ccccc2)cc1,11,RNA binders
+c1ccc(CNc2nc3ccccc3cc2-c2ncon2)cc1,11,RNA binders
