@@ -318,7 +318,7 @@ async def classify_batch(molecules: MoleculesBatchInput, db: Session = Depends(g
                 duration_ms=duration_ms
             )
             # Convert results to dicts for persistence
-            results_dicts = [r.dict() for r in results]
+            results_dicts = [r.model_dump() for r in results]
             db_ops.add_molecules_and_predictions(db, job, results_dicts)
             job_id = job.id
         except Exception as e:
@@ -415,7 +415,7 @@ async def classify_from_pubchem(pubchem_input: PubChemInput, db: Session = Depen
                 duration_ms=duration_ms
             )
             # Convert results to dicts for persistence
-            results_dicts = [r.dict() for r in results]
+            results_dicts = [r.model_dump() for r in results]
             db_ops.add_molecules_and_predictions(db, job, results_dicts)
             job_id = job.id
         except Exception as e:

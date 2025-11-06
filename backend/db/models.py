@@ -7,13 +7,18 @@ Models:
 - Prediction: Classification predictions for each molecule
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, JSON, ForeignKey, Text
 from sqlalchemy.orm import declarative_base, relationship
 from uuid import uuid4
 
 Base = declarative_base()
+
+
+def utcnow():
+    """Return timezone-aware UTC datetime."""
+    return datetime.now(timezone.utc)
 
 
 class Job(Base):
@@ -26,8 +31,8 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
     
     # Input metadata
     input_type = Column(String(50), nullable=False, index=True)  # smiles, file, pubchem, batch
