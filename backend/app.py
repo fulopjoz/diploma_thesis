@@ -7,21 +7,21 @@ Protein-binding using a pre-trained XGBoost ensemble model.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from contextlib import asynccontextmanager
-import joblib
-import numpy as np
-from rdkit import Chem
-from rdkit.Chem import AllChem
-from rdkit import RDLogger
 import os
 
-# Disable RDKit warnings
-RDLogger.DisableLog('rdApp.error')
+# Import shared core functionality
+from core import (
+    smiles_to_ecfp6,
+    classify_smiles_list,
+    ClassificationResult as CoreClassificationResult,
+    MODEL_PATH,
+    get_model
+)
 
-# Load the pre-trained model
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "ensemble", "set1", "best_xgb.joblib")
+# Module-level model reference for compatibility
 model = None
 
 # Load model on startup using lifespan for FastAPI 0.109+
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     """Load the XGBoost model on startup and cleanup on shutdown."""
     global model
     try:
-        model = joblib.load(MODEL_PATH)
+        model = get_model()
         print(f"Model loaded successfully from {MODEL_PATH}")
     except Exception as e:
         print(f"Error loading model: {e}")
@@ -59,39 +59,36 @@ app.add_middleware(
 
 # Pydantic models for request/response
 class MoleculeInput(BaseModel):
-    smiles: str = Field(..., description="SMILES string of the molecule")
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "smiles": "CC(C)Cc1ccc(cc1)C(C)C(O)=O"
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "smiles": "CC(C)Cc1ccc(cc1)C(C)C(O)=O"
         }
+    })
+    
+    smiles: str = Field(..., description="SMILES string of the molecule")
 
 
 class MoleculesBatchInput(BaseModel):
-    smiles_list: List[str] = Field(..., description="List of SMILES strings")
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "smiles_list": [
-                    "CC(C)Cc1ccc(cc1)C(C)C(O)=O",
-                    "c1ccccc1"
-                ]
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "smiles_list": [
+                "CC(C)Cc1ccc(cc1)C(C)C(O)=O",
+                "c1ccccc1"
+            ]
         }
+    })
+    
+    smiles_list: List[str] = Field(..., description="List of SMILES strings")
 
 
 class PubChemInput(BaseModel):
-    compound_ids: List[str] = Field(..., description="List of PubChem CIDs or compound names")
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "compound_ids": ["2244", "aspirin"]
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "compound_ids": ["2244", "aspirin"]
         }
+    })
+    
+    compound_ids: List[str] = Field(..., description="List of PubChem CIDs or compound names")
 
 
 class ClassificationResult(BaseModel):
@@ -109,40 +106,9 @@ class BatchClassificationResult(BaseModel):
     summary: dict
 
 
-# Helper functions
-def smiles_to_ecfp6(smiles: str, radius: int = 3, n_bits: int = 2048) -> Optional[np.ndarray]:
-    """
-    Convert SMILES string to ECFP6 fingerprint.
-    
-    Args:
-        smiles: SMILES string
-        radius: Morgan fingerprint radius (3 for ECFP6)
-        n_bits: Number of bits in the fingerprint
-    
-    Returns:
-        Numpy array of fingerprint or None if invalid
-    """
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            return None
-        
-        # Generate Morgan fingerprint (ECFP6 uses radius=3)
-        fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
-        
-        # Convert to numpy array
-        arr = np.zeros((n_bits,), dtype=np.int8)
-        Chem.DataStructs.ConvertToNumpyArray(fp, arr)
-        
-        return arr
-    except Exception as e:
-        print(f"Error converting SMILES to fingerprint: {e}")
-        return None
-
-
 def classify_molecule(smiles: str) -> ClassificationResult:
     """
-    Classify a single molecule.
+    Classify a single molecule using core logic.
     
     Args:
         smiles: SMILES string
@@ -150,42 +116,18 @@ def classify_molecule(smiles: str) -> ClassificationResult:
     Returns:
         ClassificationResult object
     """
-    # Convert SMILES to fingerprint
-    fp = smiles_to_ecfp6(smiles)
+    results, _ = classify_smiles_list([smiles])
+    core_result = results[0]
     
-    if fp is None:
-        return ClassificationResult(
-            smiles=smiles,
-            prediction="Invalid",
-            probability_rna=0.0,
-            probability_protein=0.0,
-            confidence=0.0,
-            valid=False,
-            error="Invalid SMILES string"
-        )
-    
-    # Reshape for prediction
-    fp_reshaped = fp.reshape(1, -1)
-    
-    # Get prediction and probabilities
-    prediction = model.predict(fp_reshaped)[0]
-    probabilities = model.predict_proba(fp_reshaped)[0]
-    
-    # Assuming class 0 is RNA_binding and class 1 is Protein_binding
-    # This should be verified with the actual model training
-    prob_rna = float(probabilities[0])
-    prob_protein = float(probabilities[1])
-    
-    prediction_label = "RNA_binding" if prediction == 0 else "Protein_binding"
-    confidence = float(max(probabilities))
-    
+    # Convert core ClassificationResult to Pydantic model
     return ClassificationResult(
-        smiles=smiles,
-        prediction=prediction_label,
-        probability_rna=prob_rna,
-        probability_protein=prob_protein,
-        confidence=confidence,
-        valid=True
+        smiles=core_result.smiles,
+        prediction=core_result.prediction,
+        probability_rna=core_result.probability_rna,
+        probability_protein=core_result.probability_protein,
+        confidence=core_result.confidence,
+        valid=core_result.valid,
+        error=core_result.error
     )
 
 
@@ -247,25 +189,22 @@ async def classify_batch(molecules: MoleculesBatchInput):
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
     
-    results = []
-    for smiles in molecules.smiles_list:
-        result = classify_molecule(smiles)
-        results.append(result)
+    # Use core classify_smiles_list function
+    core_results, summary = classify_smiles_list(molecules.smiles_list)
     
-    # Calculate summary statistics
-    valid_results = [r for r in results if r.valid]
-    rna_count = sum(1 for r in valid_results if r.prediction == "RNA_binding")
-    protein_count = sum(1 for r in valid_results if r.prediction == "Protein_binding")
-    avg_confidence = sum(r.confidence for r in valid_results) / len(valid_results) if valid_results else 0
-    
-    summary = {
-        "total": len(results),
-        "valid": len(valid_results),
-        "invalid": len(results) - len(valid_results),
-        "rna_binding": rna_count,
-        "protein_binding": protein_count,
-        "average_confidence": round(avg_confidence, 4)
-    }
+    # Convert core results to Pydantic models
+    results = [
+        ClassificationResult(
+            smiles=r.smiles,
+            prediction=r.prediction,
+            probability_rna=r.probability_rna,
+            probability_protein=r.probability_protein,
+            confidence=r.confidence,
+            valid=r.valid,
+            error=r.error
+        )
+        for r in core_results
+    ]
     
     return BatchClassificationResult(results=results, summary=summary)
 
@@ -292,7 +231,9 @@ async def classify_from_pubchem(pubchem_input: PubChemInput):
             detail="PubChemPy not installed. Install with: pip install pubchempy"
         )
     
-    results = []
+    smiles_list = []
+    errors = {}
+    
     for compound_id in pubchem_input.compound_ids:
         try:
             # Try to get compound by CID or name
@@ -302,44 +243,35 @@ async def classify_from_pubchem(pubchem_input: PubChemInput):
                 compounds = [pcp.Compound.from_cid(compound_id)]
             
             if compounds and compounds[0]:
-                smiles = compounds[0].canonical_smiles
-                result = classify_molecule(smiles)
-                results.append(result)
+                smiles_list.append(compounds[0].canonical_smiles)
             else:
-                results.append(ClassificationResult(
-                    smiles="",
-                    prediction="Invalid",
-                    probability_rna=0.0,
-                    probability_protein=0.0,
-                    confidence=0.0,
-                    valid=False,
-                    error=f"Compound not found: {compound_id}"
-                ))
+                smiles_list.append("")
+                errors[len(smiles_list) - 1] = f"Compound not found: {compound_id}"
         except Exception as e:
-            results.append(ClassificationResult(
-                smiles="",
-                prediction="Invalid",
-                probability_rna=0.0,
-                probability_protein=0.0,
-                confidence=0.0,
-                valid=False,
-                error=f"Error fetching {compound_id}: {str(e)}"
-            ))
+            smiles_list.append("")
+            errors[len(smiles_list) - 1] = f"Error fetching {compound_id}: {str(e)}"
     
-    # Calculate summary statistics
-    valid_results = [r for r in results if r.valid]
-    rna_count = sum(1 for r in valid_results if r.prediction == "RNA_binding")
-    protein_count = sum(1 for r in valid_results if r.prediction == "Protein_binding")
-    avg_confidence = sum(r.confidence for r in valid_results) / len(valid_results) if valid_results else 0
+    # Classify all SMILES using core function
+    core_results, summary = classify_smiles_list(smiles_list)
     
-    summary = {
-        "total": len(results),
-        "valid": len(valid_results),
-        "invalid": len(results) - len(valid_results),
-        "rna_binding": rna_count,
-        "protein_binding": protein_count,
-        "average_confidence": round(avg_confidence, 4)
-    }
+    # Apply errors for failed PubChem lookups
+    for idx, error_msg in errors.items():
+        if idx < len(core_results):
+            core_results[idx].error = error_msg
+    
+    # Convert core results to Pydantic models
+    results = [
+        ClassificationResult(
+            smiles=r.smiles,
+            prediction=r.prediction,
+            probability_rna=r.probability_rna,
+            probability_protein=r.probability_protein,
+            confidence=r.confidence,
+            valid=r.valid,
+            error=r.error
+        )
+        for r in core_results
+    ]
     
     return BatchClassificationResult(results=results, summary=summary)
 
