@@ -6,13 +6,12 @@ This script tests the basic functionality of the classifier without starting the
 
 import sys
 import os
-import joblib
 
-# Add parent directory to path to import app
+# Add parent directory to path to import modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import smiles_to_ecfp6, classify_molecule, MODEL_PATH
-import app as app_module
+import core
+from app import classify_molecule
 
 
 def test_classifier():
@@ -25,7 +24,7 @@ def test_classifier():
     # Load model
     print("\n1. Loading model...")
     try:
-        app_module.model = joblib.load(MODEL_PATH)
+        core.load_model()
         print("   ✓ Model loaded successfully")
     except Exception as e:
         print(f"   ✗ Error loading model: {e}")
@@ -34,7 +33,7 @@ def test_classifier():
     # Test SMILES to fingerprint conversion
     print("\n2. Testing SMILES to ECFP6 conversion...")
     test_smiles = "c1ccccc1"  # benzene
-    fp = smiles_to_ecfp6(test_smiles)
+    fp = core.smiles_to_ecfp6(test_smiles)
     if fp is not None:
         print(f"   ✓ Successfully converted '{test_smiles}' to fingerprint")
         print(f"   - Fingerprint shape: {fp.shape}")

@@ -98,6 +98,7 @@ Returns API information and available endpoints.
     "classify": "/api/classify",
     "classify_batch": "/api/classify/batch",
     "classify_pubchem": "/api/classify/pubchem",
+    "classify_file": "/api/classify/file",
     "health": "/health",
     "docs": "/docs"
   }
@@ -205,6 +206,102 @@ Fetch molecules from PubChem and classify them.
 
 **Response:**
 Similar to batch classification, with molecules fetched from PubChem.
+
+### 6. Classify from File Upload
+```
+POST /api/classify/file
+```
+
+Upload and classify molecules from CSV/TSV/SDF files with streaming support for large datasets.
+
+**Form Parameters:**
+- `file` (required): The uploaded file
+- `format` (optional, default: "csv"): File format - one of: `csv`, `tsv`, `sdf`
+- `smiles_col` (optional, default: "smiles"): Column name containing SMILES strings (for CSV/TSV only)
+- `delimiter` (optional, default: ","): Delimiter for CSV files (automatically set to tab for TSV)
+- `chunksize` (optional, default: 5000): Number of rows to process per chunk
+- `report` (optional, default: false): Whether to generate visualization report
+- `output_format` (optional, default: "json"): Response format - one of: `json`, `csv`
+
+**Example Request (using form data):**
+```bash
+curl -X POST "http://localhost:8000/api/classify/file" \
+  -F "file=@molecules.csv" \
+  -F "format=csv" \
+  -F "smiles_col=smiles" \
+  -F "report=true" \
+  -F "output_format=json"
+```
+
+**Response (JSON format):**
+```json
+{
+  "results": [
+    {
+      "smiles": "c1ccccc1",
+      "prediction": "Protein_binding",
+      "probability_rna": 0.0019,
+      "probability_protein": 0.9981,
+      "confidence": 0.9981,
+      "valid": true,
+      "error": null
+    },
+    ...
+  ],
+  "summary": {
+    "total": 100,
+    "valid": 98,
+    "invalid": 2,
+    "rna_binding": 45,
+    "protein_binding": 53,
+    "average_confidence": 0.8234
+  },
+  "report_path": "/tmp/classification_report_molecules_csv"
+}
+```
+
+**Response (CSV format):**
+When `output_format=csv`, returns a CSV file with all results and summary in comments.
+
+**Supported File Formats:**
+- **CSV**: Comma-separated values with customizable delimiter
+- **TSV**: Tab-separated values (delimiter automatically set to tab)
+- **SDF**: Structure-Data File format (SMILES extracted from molecular structures)
+
+**Features:**
+- Streaming processing for large files (processes in chunks)
+- Order preservation - results maintain input order
+- Invalid entry tracking - invalid SMILES are marked and counted
+- Optional visualization report generation
+- Flexible output formats (JSON or CSV)
+
+**Example with Custom Column Name:**
+```bash
+curl -X POST "http://localhost:8000/api/classify/file" \
+  -F "file=@compounds.csv" \
+  -F "format=csv" \
+  -F "smiles_col=compound_smiles"
+```
+
+**Example TSV File:**
+```bash
+curl -X POST "http://localhost:8000/api/classify/file" \
+  -F "file=@molecules.tsv" \
+  -F "format=tsv"
+```
+
+**Example with Report Generation:**
+```bash
+curl -X POST "http://localhost:8000/api/classify/file" \
+  -F "file=@molecules.csv" \
+  -F "report=true"
+```
+
+When `report=true`, a visualization report is generated containing:
+- Probability distribution plots
+- Confidence score visualizations
+- Classification summary pie charts
+- Statistical summary text file
 
 ## Usage Examples
 
