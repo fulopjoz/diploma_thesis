@@ -5,7 +5,7 @@ This application provides endpoints to classify molecules as RNA-binding or
 Protein-binding using a pre-trained XGBoost ensemble model.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -16,6 +16,13 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit import RDLogger
 import os
+import time
+
+# Database imports
+from sqlalchemy.orm import Session
+from db.session import get_db, engine
+from db.models import Base
+from db import operations as db_ops
 
 # Disable RDKit warnings
 RDLogger.DisableLog('rdApp.error')
@@ -35,6 +42,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Error loading model: {e}")
         raise
+    
+    # Initialize database tables
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("Database tables initialized")
+        if db_ops.is_persistence_enabled():
+            print("Database persistence is ENABLED")
+        else:
+            print("Database persistence is DISABLED (set ENABLE_PERSISTENCE=true to enable)")
+    except Exception as e:
+        print(f"Warning: Database initialization failed: {e}")
+        print("Continuing without database persistence...")
+    
     yield
     # Cleanup (if needed)
     print("Shutting down...")
@@ -62,7 +82,7 @@ class MoleculeInput(BaseModel):
     smiles: str = Field(..., description="SMILES string of the molecule")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "smiles": "CC(C)Cc1ccc(cc1)C(C)C(O)=O"
             }
@@ -73,7 +93,7 @@ class MoleculesBatchInput(BaseModel):
     smiles_list: List[str] = Field(..., description="List of SMILES strings")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "smiles_list": [
                     "CC(C)Cc1ccc(cc1)C(C)C(O)=O",
@@ -87,7 +107,7 @@ class PubChemInput(BaseModel):
     compound_ids: List[str] = Field(..., description="List of PubChem CIDs or compound names")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "compound_ids": ["2244", "aspirin"]
             }
@@ -107,6 +127,18 @@ class ClassificationResult(BaseModel):
 class BatchClassificationResult(BaseModel):
     results: List[ClassificationResult]
     summary: dict
+    job_id: Optional[str] = Field(None, description="Job ID if persistence is enabled")
+
+
+class JobResponse(BaseModel):
+    job_id: str
+    created_at: str
+    input_type: str
+    params: Optional[dict] = None
+    status: str
+    duration_ms: Optional[int] = None
+    summary: Optional[dict] = None
+    results: List[ClassificationResult]
 
 
 # Helper functions
@@ -201,9 +233,11 @@ async def root():
             "classify": "/api/classify",
             "classify_batch": "/api/classify/batch",
             "classify_pubchem": "/api/classify/pubchem",
+            "get_job": "/api/jobs/{job_id}",
             "health": "/health",
             "docs": "/docs"
-        }
+        },
+        "persistence_enabled": db_ops.is_persistence_enabled()
     }
 
 
@@ -234,18 +268,21 @@ async def classify_single(molecule: MoleculeInput):
 
 
 @app.post("/api/classify/batch", response_model=BatchClassificationResult)
-async def classify_batch(molecules: MoleculesBatchInput):
+async def classify_batch(molecules: MoleculesBatchInput, db: Session = Depends(get_db)):
     """
     Classify multiple molecules from SMILES strings.
     
     Args:
         molecules: MoleculesBatchInput with list of SMILES strings
+        db: Database session (optional, for persistence)
     
     Returns:
         BatchClassificationResult with all predictions and summary statistics
     """
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
+    
+    start_time = time.time()
     
     results = []
     for smiles in molecules.smiles_list:
@@ -267,16 +304,37 @@ async def classify_batch(molecules: MoleculesBatchInput):
         "average_confidence": round(avg_confidence, 4)
     }
     
-    return BatchClassificationResult(results=results, summary=summary)
+    duration_ms = int((time.time() - start_time) * 1000)
+    job_id = None
+    
+    # Optionally persist to database
+    if db_ops.is_persistence_enabled():
+        try:
+            job = db_ops.create_job(
+                db=db,
+                input_type="batch",
+                params={"smiles_count": len(molecules.smiles_list)},
+                summary=summary,
+                duration_ms=duration_ms
+            )
+            # Convert results to dicts for persistence
+            results_dicts = [r.model_dump() for r in results]
+            db_ops.add_molecules_and_predictions(db, job, results_dicts)
+            job_id = job.id
+        except Exception as e:
+            print(f"Warning: Failed to persist job to database: {e}")
+    
+    return BatchClassificationResult(results=results, summary=summary, job_id=job_id)
 
 
 @app.post("/api/classify/pubchem", response_model=BatchClassificationResult)
-async def classify_from_pubchem(pubchem_input: PubChemInput):
+async def classify_from_pubchem(pubchem_input: PubChemInput, db: Session = Depends(get_db)):
     """
     Fetch molecules from PubChem and classify them.
     
     Args:
         pubchem_input: PubChemInput with list of compound IDs or names
+        db: Database session (optional, for persistence)
     
     Returns:
         BatchClassificationResult with all predictions and summary statistics
@@ -291,6 +349,8 @@ async def classify_from_pubchem(pubchem_input: PubChemInput):
             status_code=500,
             detail="PubChemPy not installed. Install with: pip install pubchempy"
         )
+    
+    start_time = time.time()
     
     results = []
     for compound_id in pubchem_input.compound_ids:
@@ -341,7 +401,67 @@ async def classify_from_pubchem(pubchem_input: PubChemInput):
         "average_confidence": round(avg_confidence, 4)
     }
     
-    return BatchClassificationResult(results=results, summary=summary)
+    duration_ms = int((time.time() - start_time) * 1000)
+    job_id = None
+    
+    # Optionally persist to database
+    if db_ops.is_persistence_enabled():
+        try:
+            job = db_ops.create_job(
+                db=db,
+                input_type="pubchem",
+                params={"compound_ids": pubchem_input.compound_ids},
+                summary=summary,
+                duration_ms=duration_ms
+            )
+            # Convert results to dicts for persistence
+            results_dicts = [r.model_dump() for r in results]
+            db_ops.add_molecules_and_predictions(db, job, results_dicts)
+            job_id = job.id
+        except Exception as e:
+            print(f"Warning: Failed to persist job to database: {e}")
+    
+    return BatchClassificationResult(results=results, summary=summary, job_id=job_id)
+
+
+@app.get("/api/jobs/{job_id}", response_model=JobResponse)
+async def get_job(job_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a stored classification job by ID.
+    
+    Args:
+        job_id: Job UUID
+        db: Database session
+    
+    Returns:
+        JobResponse with job metadata and all results
+    
+    Raises:
+        HTTPException: If persistence is not enabled or job not found
+    """
+    if not db_ops.is_persistence_enabled():
+        raise HTTPException(
+            status_code=501,
+            detail="Database persistence is not enabled. Set ENABLE_PERSISTENCE=true to enable."
+        )
+    
+    job_data = db_ops.get_job_results(db, job_id)
+    if not job_data:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+    
+    # Convert results dict to ClassificationResult objects
+    results = [ClassificationResult(**r) for r in job_data["results"]]
+    
+    return JobResponse(
+        job_id=job_data["job_id"],
+        created_at=job_data["created_at"],
+        input_type=job_data["input_type"],
+        params=job_data["params"],
+        status=job_data["status"],
+        duration_ms=job_data["duration_ms"],
+        summary=job_data["summary"],
+        results=results
+    )
 
 
 if __name__ == "__main__":
