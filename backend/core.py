@@ -3,6 +3,14 @@ Core classification logic for RNA/Protein binding molecule classification.
 
 This module provides shared functionality for feature generation and classification
 that can be used by both the API and CLI interfaces.
+
+Model Class Mapping:
+    - Class 0: RNA_binding
+    - Class 1: Protein_binding
+    
+Note: This mapping is determined by the training data and should remain consistent
+with the model training process. The model was trained with RNA-binding as class 0
+and Protein-binding as class 1.
 """
 
 from typing import List, Tuple, Dict, Any, Optional
@@ -50,6 +58,11 @@ def smiles_to_ecfp6(smiles: str, radius: int = 3, n_bits: int = 2048) -> Optiona
     
     Returns:
         Numpy array of fingerprint or None if invalid
+        
+    Note:
+        Uses print() for error logging to maintain consistency with the existing
+        codebase and RDKit's logging approach. Errors are also indicated by
+        returning None, allowing callers to handle invalid SMILES gracefully.
     """
     try:
         mol = Chem.MolFromSmiles(smiles)

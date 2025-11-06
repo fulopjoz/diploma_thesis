@@ -254,12 +254,7 @@ async def classify_from_pubchem(pubchem_input: PubChemInput):
     # Classify all SMILES using core function
     core_results, summary = classify_smiles_list(smiles_list)
     
-    # Apply errors for failed PubChem lookups
-    for idx, error_msg in errors.items():
-        if idx < len(core_results):
-            core_results[idx].error = error_msg
-    
-    # Convert core results to Pydantic models
+    # Convert core results to Pydantic models, applying PubChem-specific errors
     results = [
         ClassificationResult(
             smiles=r.smiles,
@@ -268,9 +263,9 @@ async def classify_from_pubchem(pubchem_input: PubChemInput):
             probability_protein=r.probability_protein,
             confidence=r.confidence,
             valid=r.valid,
-            error=r.error
+            error=errors.get(idx, r.error)  # Use PubChem error if available, otherwise core error
         )
-        for r in core_results
+        for idx, r in enumerate(core_results)
     ]
     
     return BatchClassificationResult(results=results, summary=summary)
