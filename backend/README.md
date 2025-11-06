@@ -1,14 +1,17 @@
-# RNA/Protein Binding Classifier - Backend API
+# RNA/Protein Binding Classifier - Backend
 
-A FastAPI-based backend service for classifying molecules as RNA-binding or Protein-binding using a pre-trained XGBoost ensemble model.
+A FastAPI-based backend service and command-line interface for classifying molecules as RNA-binding or Protein-binding using a pre-trained XGBoost ensemble model.
 
 ## Features
 
 - **Single Molecule Classification**: Classify individual molecules from SMILES strings
 - **Batch Processing**: Process multiple molecules in a single request
 - **PubChem Integration**: Fetch molecules from PubChem database by CID or name
+- **File Processing**: Process CSV, TSV, and SDF files
 - **Probability Scores**: Get confidence scores for predictions
 - **RESTful API**: Easy-to-use REST endpoints with automatic documentation
+- **Command-Line Interface**: Powerful CLI for batch processing and automation
+- **Visualization Reports**: Generate comprehensive classification reports with charts
 - **CORS Enabled**: Ready for frontend integration
 
 ## Model Information
@@ -300,6 +303,267 @@ fetch('http://localhost:8000/api/classify/batch', {
   console.log('Summary:', data.summary);
   console.log('Results:', data.results);
 });
+```
+
+## Command-Line Interface (CLI)
+
+The backend includes a powerful command-line interface for batch processing and automation. The CLI shares the same core logic as the API, ensuring consistent results.
+
+### CLI Installation
+
+The CLI is automatically available after installing the backend dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+### CLI Usage
+
+Run the CLI with:
+
+```bash
+python -m backend.cli [COMMAND] [OPTIONS]
+```
+
+Or from the backend directory:
+
+```bash
+python -m cli [COMMAND] [OPTIONS]
+```
+
+### Available Commands
+
+#### 1. Classify SMILES Strings
+
+Classify one or more SMILES strings directly from the command line.
+
+**Basic usage:**
+```bash
+python -m backend.cli classify smiles "c1ccccc1"
+```
+
+**Multiple SMILES:**
+```bash
+python -m backend.cli classify smiles "c1ccccc1" "CCO" "CC(=O)O"
+```
+
+**JSON output (default):**
+```bash
+python -m backend.cli classify smiles "c1ccccc1" --output-format json
+```
+
+**CSV output:**
+```bash
+python -m backend.cli classify smiles "c1ccccc1" "CCO" --output-format csv
+```
+
+**Save to file:**
+```bash
+python -m backend.cli classify smiles "c1ccccc1" --output results.json
+python -m backend.cli classify smiles "c1ccccc1" --output-format csv --output results.csv
+```
+
+**Generate visualization report:**
+```bash
+python -m backend.cli classify smiles "c1ccccc1" "CCO" "CC(=O)O" --report ./report_dir
+```
+
+#### 2. Classify from File
+
+Process molecules from CSV, TSV, or SDF files.
+
+**CSV file:**
+```bash
+python -m backend.cli classify file --path molecules.csv --format csv
+```
+
+**TSV file:**
+```bash
+python -m backend.cli classify file --path molecules.tsv --format tsv
+```
+
+**SDF file:**
+```bash
+python -m backend.cli classify file --path molecules.sdf --format sdf
+```
+
+**Custom SMILES column:**
+```bash
+python -m backend.cli classify file --path data.csv --format csv --smiles-col "smiles_column"
+```
+
+**Custom delimiter:**
+```bash
+python -m backend.cli classify file --path data.txt --format csv --delimiter "|"
+```
+
+**Process in chunks (for large files):**
+```bash
+python -m backend.cli classify file --path large_file.csv --format csv --chunksize 1000
+```
+
+**Complete example with all options:**
+```bash
+python -m backend.cli classify file \
+  --path molecules.csv \
+  --format csv \
+  --smiles-col "smiles" \
+  --output-format csv \
+  --output results.csv \
+  --report ./report
+```
+
+#### 3. Classify from PubChem
+
+Fetch molecules from PubChem and classify them.
+
+**By CID:**
+```bash
+python -m backend.cli classify pubchem --id 2244
+```
+
+**By compound name:**
+```bash
+python -m backend.cli classify pubchem --id aspirin
+```
+
+**Multiple compounds:**
+```bash
+python -m backend.cli classify pubchem --id 2244 --id aspirin --id caffeine
+```
+
+**With output options:**
+```bash
+python -m backend.cli classify pubchem \
+  --id 2244 \
+  --id aspirin \
+  --output-format csv \
+  --output pubchem_results.csv \
+  --report ./pubchem_report
+```
+
+### CLI Output Formats
+
+#### JSON Output
+
+The default output format matches the API response schema:
+
+```json
+{
+  "results": [
+    {
+      "smiles": "c1ccccc1",
+      "prediction": "Protein_binding",
+      "probability_rna": 0.0019,
+      "probability_protein": 0.9981,
+      "confidence": 0.9981,
+      "valid": true,
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "valid": 1,
+    "invalid": 0,
+    "rna_binding": 0,
+    "protein_binding": 1,
+    "average_confidence": 0.9981
+  }
+}
+```
+
+#### CSV Output
+
+CSV format includes all classification details:
+
+```csv
+smiles,prediction,probability_rna,probability_protein,confidence,valid,error
+c1ccccc1,Protein_binding,0.0019,0.9981,0.9981,True,
+CCO,Protein_binding,0.0041,0.9959,0.9959,True,
+```
+
+### Visualization Reports
+
+When using the `--report` option, the CLI generates a comprehensive report including:
+
+- **probability_distribution.png**: Histograms of RNA and Protein binding probabilities
+- **confidence_scores.png**: Box plots of confidence scores by prediction type
+- **classification_summary.png**: Pie chart showing classification breakdown
+- **summary.txt**: Text file with detailed statistics
+
+Example:
+```bash
+python -m backend.cli classify smiles "c1ccccc1" "CCO" "CC(=O)O" --report ./my_report
+```
+
+This creates a `my_report/` directory with all visualization files.
+
+### CLI Examples
+
+**Example 1: Quick classification of a few molecules**
+```bash
+python -m backend.cli classify smiles "c1ccccc1" "CCO" "CC(=O)O"
+```
+
+**Example 2: Process a CSV file and save results**
+```bash
+python -m backend.cli classify file \
+  --path input.csv \
+  --format csv \
+  --output-format csv \
+  --output results.csv
+```
+
+**Example 3: Classify PubChem compounds with visualization**
+```bash
+python -m backend.cli classify pubchem \
+  --id aspirin \
+  --id ibuprofen \
+  --id acetaminophen \
+  --report ./drug_analysis
+```
+
+**Example 4: Process a large file in chunks**
+```bash
+python -m backend.cli classify file \
+  --path large_library.csv \
+  --format csv \
+  --chunksize 1000 \
+  --output-format csv \
+  --output results.csv
+```
+
+### CLI vs API
+
+Both the CLI and API use the same core classification logic from `backend/core.py`, ensuring:
+
+- **Consistent Results**: Same predictions for the same input
+- **Shared Model**: Single model instance loaded once
+- **Identical Features**: Same ECFP6 fingerprint generation
+- **Compatible Output**: CLI JSON format matches API response schema
+
+Use the **CLI** when:
+- Processing batch files locally
+- Automating classification pipelines
+- Working in command-line environments
+- Generating offline reports
+
+Use the **API** when:
+- Building web applications
+- Integrating with other services
+- Real-time classification needs
+- Multi-user concurrent access
+
+### CLI Help
+
+Get help on any command:
+
+```bash
+python -m backend.cli --help
+python -m backend.cli classify --help
+python -m backend.cli classify smiles --help
+python -m backend.cli classify file --help
+python -m backend.cli classify pubchem --help
 ```
 
 ## Error Handling
