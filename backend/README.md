@@ -726,3 +726,49 @@ Fulop, J. (2024). Cheminformatics Analysis of RNA-Binding Ligands. Diploma Thesi
 ## Contact
 
 For issues and questions, please open an issue in the GitHub repository.
+
+## Developer Notes
+
+### Code Structure (Updated)
+
+The codebase is organized for maximum reusability:
+
+- **`core.py`**: Shared classification logic (feature generation, model loading, classification)
+  - `smiles_to_ecfp6()`: Converts SMILES to ECFP6 fingerprints
+  - `classify_smiles_list()`: Batch classification with summary statistics
+  - `get_model()`: Lazy model loading
+  - `ClassificationResult`: Data class for results
+
+- **`app.py`**: FastAPI web application layer
+  - REST endpoints using core module functions
+  - Pydantic models for request/response validation
+  - No duplicate classification logic
+
+- **`tests/test_core.py`**: Comprehensive unit tests for core module
+  - Run with: `python -m pytest tests/test_core.py -v`
+
+This structure allows the core logic to be easily reused by other interfaces (e.g., CLI tools, batch processing scripts) while maintaining a single source of truth for the classification logic.
+
+### Running Tests
+
+The project includes both unit tests and integration tests:
+
+**Unit tests (pytest):**
+```bash
+# Install pytest if not already installed
+pip install pytest
+
+# Run all tests
+python -m pytest backend/tests/ -v
+
+# Run specific test file
+python -m pytest backend/tests/test_core.py -v
+```
+
+**Integration test:**
+```bash
+# Test classifier directly (no API server needed)
+python test_classifier.py
+```
+
+Both test suites should pass before committing changes.
