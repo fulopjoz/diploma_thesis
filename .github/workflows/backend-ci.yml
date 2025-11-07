@@ -42,12 +42,14 @@ jobs:
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate backend-ci
-          python -m pytest -q --cov=backend --cov-report=term-missing backend/tests
+          python -m pytest -q --cov=backend --cov-report=term-missing --cov-report=xml backend/tests
 
       - name: Upload coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
-          path: ./.coverage
+          path: |
+            ./.coverage
+            ./coverage.xml
 

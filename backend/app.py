@@ -8,7 +8,7 @@ Protein-binding using a pre-trained XGBoost ensemble model.
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from contextlib import asynccontextmanager
 import io
@@ -78,19 +78,21 @@ app.add_middleware(
 class MoleculeInput(BaseModel):
     smiles: str = Field(..., description="SMILES string of the molecule")
     
-    class Config:
-        json_schema_extra = {
+    # Pydantic v2 configuration
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "smiles": "CC(C)Cc1ccc(cc1)C(C)C(O)=O"
             }
         }
+    )
 
 
 class MoleculesBatchInput(BaseModel):
     smiles_list: List[str] = Field(..., description="List of SMILES strings")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "smiles_list": [
                     "CC(C)Cc1ccc(cc1)C(C)C(O)=O",
@@ -98,17 +100,19 @@ class MoleculesBatchInput(BaseModel):
                 ]
             }
         }
+    )
 
 
 class PubChemInput(BaseModel):
     compound_ids: List[str] = Field(..., description="List of PubChem CIDs or compound names")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "compound_ids": ["2244", "aspirin"]
             }
         }
+    )
 
 
 class ClassificationResult(BaseModel):
