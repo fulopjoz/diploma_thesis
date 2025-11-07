@@ -30,23 +30,34 @@ jobs:
           use-mamba: true
 
       - name: Install rdkit via conda
-        run: mamba install -n backend-ci -c conda-forge rdkit=2023.9.4 -y
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate backend-ci
+          mamba install -c conda-forge rdkit=2023.9.4 -y
 
       - name: Export environment (debug)
         run: conda list -n backend-ci
 
       - name: Install pip requirements
         run: |
-          conda run -n backend-ci python -m pip install --upgrade pip
-          conda run -n backend-ci python -m pip install -r backend/requirements-ci.txt
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate backend-ci
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements-ci.txt
+          python -c "import sys; print('Python executable:', sys.executable)"
 
       - name: Run mypy (non-blocking for now)
         run: |
-          conda run -n backend-ci python -m mypy --config-file mypy.ini backend || true
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate backend-ci
+          python -m mypy --config-file mypy.ini backend || true
 
       - name: Run tests with coverage
         run: |
-          conda run -n backend-ci python -m pytest -q --cov=backend --cov-report=term-missing --cov-report=xml backend/tests
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate backend-ci
+          python -m pytest -q --cov=backend --cov-report=term-missing --cov-report=xml backend/tests || exit 1
+          ls -al . | grep coverage || true
 
       - name: Upload coverage to Codecov
         if: always()
