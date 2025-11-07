@@ -1,5 +1,8 @@
 # Diploma Thesis Repository: Cheminformatics Analysis of RNA-Binding Ligands
 
+![Backend CI](https://github.com/fulopjoz/diploma_thesis/actions/workflows/backend-ci.yml/badge.svg)
+[![codecov](https://codecov.io/gh/fulopjoz/diploma_thesis/branch/main/graph/badge.svg)](https://codecov.io/gh/fulopjoz/diploma_thesis)
+
 **Author:** Jozef Fulop  
 **Institution:** UCT in Prague  
 

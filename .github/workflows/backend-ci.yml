@@ -38,11 +38,24 @@ jobs:
           conda activate backend-ci
           python -m pip install -r backend/requirements-ci.txt
 
+      - name: Run mypy (non-blocking for now)
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate backend-ci
+          python -m mypy --config-file mypy.ini backend || true
+
       - name: Run tests with coverage
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate backend-ci
           python -m pytest -q --cov=backend --cov-report=term-missing --cov-report=xml backend/tests
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
 
       - name: Upload coverage artifact
         if: always()
