@@ -1,0 +1,44 @@
+# CI requirements (pip)
+# This file mirrors backend/requirements.txt but excludes rdkit (installed via conda-forge in CI)
+# and includes test tooling like pytest and pytest-cov.
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# CLI Framework
+typer==0.20.0
+
+# Machine Learning
+joblib==1.3.2
+scikit-learn==1.4.0
+xgboost==2.0.3
+numpy==1.26.3
+
+# Chemistry (installed via conda in CI)
+# rdkit==2023.9.4
+
+# Chemical Database Integration
+pubchempy==1.0.4
+
+# Data Processing
+pandas==2.2.0
+
+# HTTP Client
+httpx==0.26.0
+requests==2.31.0
+
+# Validation
+pydantic==2.5.3
+
+# Visualization
+matplotlib==3.8.2
+
+# Database
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+
+# Test tooling
+pytest==8.3.3
+pytest-cov==6.0.0

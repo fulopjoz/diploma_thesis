@@ -5,6 +5,10 @@ This module provides functions to visualize classification results,
 including probability distributions, confidence scores, and molecule structures.
 """
 
+# Use a non-interactive backend to avoid GUI warnings and atexit errors during
+# automated test runs or headless server environments.
+import matplotlib
+matplotlib.use("Agg")  # Must be set before importing pyplot
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import List, Dict

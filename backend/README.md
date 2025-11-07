@@ -54,6 +54,28 @@ conda install -c conda-forge rdkit
 pip install -r requirements.txt --ignore-installed rdkit
 ```
 
+## Recommended Development Environment
+
+Using conda for RDKit and pip for other dependencies ensures smoother installs:
+
+```bash
+conda create -n dt-backend python=3.11 -y
+conda activate dt-backend
+conda install -c conda-forge rdkit=2023.9.4 -y
+python -m pip install -r backend/requirements.txt
+```
+
+Notes:
+
+- We pin `numpy<2.0` to satisfy `scikit-learn==1.4.x` requirements.
+- In CI, RDKit is installed via conda and the rest via `backend/requirements-ci.txt`.
+- For reproducibility you can export the environment:
+
+  ```bash
+  conda env export --from-history > environment.yml
+  ```
+
+
 ## Running the Server
 
 ### Development Mode
@@ -102,6 +124,7 @@ Returns API information and available endpoints.
     "classify_batch": "/api/classify/batch",
     "classify_pubchem": "/api/classify/pubchem",
     "classify_file": "/api/classify/file",
+    "get_job": "/api/jobs/{job_id}",
     "health": "/health",
     "docs": "/docs"
   }
@@ -305,6 +328,76 @@ When `report=true`, a visualization report is generated containing:
 - Confidence score visualizations
 - Classification summary pie charts
 - Statistical summary text file
+
+### 7. Retrieve Stored Job (when persistence is enabled)
+```
+GET /api/jobs/{job_id}
+```
+
+Fetch a previously stored classification job (including summary and all results). This endpoint is available when database persistence is enabled.
+
+**Enabling Persistence**
+- Set environment variable `ENABLE_PERSISTENCE=true` (see `docker-compose.yml`).
+- The API service expects `DATABASE_URL` (PostgreSQL recommended). Example from `docker-compose.yml`:
+
+```yaml
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: classifier
+      POSTGRES_PASSWORD: classifier_password
+      POSTGRES_DB: classifier_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U classifier"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://classifier:classifier_password@db:5432/classifier_db
+      - ENABLE_PERSISTENCE=true
+    depends_on:
+      db:
+        condition: service_healthy
+```
+
+**Response Example:**
+```json
+{
+  "job_id": "<uuid>",
+  "created_at": "2025-11-07T12:34:56Z",
+  "input_type": "batch",
+  "params": {"smiles_count": 3},
+  "status": "completed",
+  "duration_ms": 123,
+  "summary": {
+    "total": 3,
+    "valid": 3,
+    "invalid": 0,
+    "rna_binding": 1,
+    "protein_binding": 2,
+    "average_confidence": 0.84
+  },
+  "results": [
+    {
+      "smiles": "c1ccccc1",
+      "prediction": "Protein_binding",
+      "probability_rna": 0.002,
+      "probability_protein": 0.998,
+      "confidence": 0.998,
+      "valid": true,
+      "error": null
+    }
+  ]
+}
+```
 
 ## Usage Examples
 

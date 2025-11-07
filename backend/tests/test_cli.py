@@ -14,7 +14,9 @@ import shutil
 
 from backend.cli import app
 
-runner = CliRunner(mix_stderr=False)
+# Older versions of click/typer may not support the 'mix_stderr' argument.
+# Use default initialization for compatibility across versions.
+runner = CliRunner()
 
 
 class TestCLISmiles:

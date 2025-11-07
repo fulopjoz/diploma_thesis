@@ -1,0 +1,53 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, copilot/add-upload-file-endpoint ]
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: 3.11
+          channels: conda-forge
+          channel-priority: strict
+          activate-environment: backend-ci
+          use-mamba: true
+
+      - name: Install rdkit via conda
+        run: mamba install -n backend-ci rdkit=2023.9.4 -y
+
+      - name: Export environment (debug)
+        run: conda list -n backend-ci
+
+      - name: Install pip requirements
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate backend-ci
+          python -m pip install -r backend/requirements-ci.txt
+
+      - name: Run tests with coverage
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate backend-ci
+          python -m pytest -q --cov=backend --cov-report=term-missing backend/tests
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: ./.coverage
+

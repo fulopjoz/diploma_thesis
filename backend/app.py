@@ -5,11 +5,7 @@ This application provides endpoints to classify molecules as RNA-binding or
 Protein-binding using a pre-trained XGBoost ensemble model.
 """
 
-<<<<<<< HEAD
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-=======
-from fastapi import FastAPI, HTTPException, Depends
->>>>>>> origin/copilot/add-file-upload-api
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -19,10 +15,9 @@ import io
 import csv
 import pandas as pd
 from rdkit import Chem
+from rdkit import RDLogger
 import os
-<<<<<<< HEAD
 import core
-=======
 import time
 
 # Database imports
@@ -33,11 +28,6 @@ from db import operations as db_ops
 
 # Disable RDKit warnings
 RDLogger.DisableLog('rdApp.error')
-
-# Load the pre-trained model
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "ensemble", "set1", "best_xgb.joblib")
-model = None
->>>>>>> origin/copilot/add-file-upload-api
 
 # Load model on startup using lifespan for FastAPI 0.109+
 @asynccontextmanager
@@ -177,11 +167,8 @@ async def root():
             "classify": "/api/classify",
             "classify_batch": "/api/classify/batch",
             "classify_pubchem": "/api/classify/pubchem",
-<<<<<<< HEAD
             "classify_file": "/api/classify/file",
-=======
             "get_job": "/api/jobs/{job_id}",
->>>>>>> origin/copilot/add-file-upload-api
             "health": "/health",
             "docs": "/docs"
         },
@@ -230,36 +217,17 @@ async def classify_batch(molecules: MoleculesBatchInput, db: Session = Depends(g
     if core._model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
     
-<<<<<<< HEAD
+    start_time = time.time()
     # Use core module for batch classification
     result_data = core.classify_smiles_list(molecules.smiles_list)
-=======
-    start_time = time.time()
     
-    results = []
-    for smiles in molecules.smiles_list:
-        result = classify_molecule(smiles)
-        results.append(result)
->>>>>>> origin/copilot/add-file-upload-api
-    
-    # Convert dict results to ClassificationResult objects
+    # Convert dict results to Pydantic models and prepare summary
     results = [ClassificationResult(**r) for r in result_data['results']]
-    
-<<<<<<< HEAD
-    return BatchClassificationResult(results=results, summary=result_data['summary'])
-=======
-    summary = {
-        "total": len(results),
-        "valid": len(valid_results),
-        "invalid": len(results) - len(valid_results),
-        "rna_binding": rna_count,
-        "protein_binding": protein_count,
-        "average_confidence": round(avg_confidence, 4)
-    }
-    
+    summary = result_data['summary']
+
     duration_ms = int((time.time() - start_time) * 1000)
     job_id = None
-    
+
     # Optionally persist to database
     if db_ops.is_persistence_enabled():
         try:
@@ -268,17 +236,15 @@ async def classify_batch(molecules: MoleculesBatchInput, db: Session = Depends(g
                 input_type="batch",
                 params={"smiles_count": len(molecules.smiles_list)},
                 summary=summary,
-                duration_ms=duration_ms
+                duration_ms=duration_ms,
             )
-            # Convert results to dicts for persistence
-            results_dicts = [r.model_dump() for r in results]
-            db_ops.add_molecules_and_predictions(db, job, results_dicts)
+            # Persist results (as dicts)
+            db_ops.add_molecules_and_predictions(db, job, result_data['results'])
             job_id = job.id
         except Exception as e:
             print(f"Warning: Failed to persist job to database: {e}")
-    
+
     return BatchClassificationResult(results=results, summary=summary, job_id=job_id)
->>>>>>> origin/copilot/add-file-upload-api
 
 
 @app.post("/api/classify/pubchem", response_model=BatchClassificationResult)

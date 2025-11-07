@@ -1,13 +1,4 @@
 """
-<<<<<<< HEAD
-Core classification logic for RNA/Protein binding molecule classification.
-
-This module provides centralized feature generation and classification functions
-that are shared across the API and CLI interfaces.
-"""
-
-from typing import List, Optional, Dict, Any
-=======
 Core classification logic for RNA/Protein binding classifier.
 
 This module provides the shared core functionality used by both the API
@@ -15,37 +6,18 @@ and CLI interfaces, including model loading, feature generation, and
 classification logic.
 """
 
+from typing import Optional, List, Dict, Any
 import joblib
->>>>>>> origin/copilot/add-file-upload-api
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit import RDLogger
-<<<<<<< HEAD
-import joblib
-import os
-=======
-from typing import Optional, List, Dict, Any
 import os
 import sys
->>>>>>> origin/copilot/add-file-upload-api
 
 # Disable RDKit warnings
 RDLogger.DisableLog('rdApp.error')
 
-<<<<<<< HEAD
-# Global model variable (lazy loaded)
-_model = None
-_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "ensemble", "set1", "best_xgb.joblib")
-
-
-def load_model(model_path: Optional[str] = None):
-    """
-    Load the XGBoost model (lazy loading).
-    
-    Args:
-        model_path: Optional path to model file. Uses default if not provided.
-=======
 # Model configuration constants
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "ensemble", "set1", "best_xgb.joblib")
 ECFP_RADIUS = 3  # radius=3 for ECFP6
@@ -55,38 +27,17 @@ ECFP_NBITS = 2048
 _model = None
 
 
-def load_model(model_path: str = MODEL_PATH) -> Any:
+def load_model(model_path: str = MODEL_PATH):
     """
-    Load the XGBoost model from disk.
+    Load the XGBoost model from disk (lazy loading).
     
     Args:
         model_path: Path to the model file
->>>>>>> origin/copilot/add-file-upload-api
     
     Returns:
         Loaded model object
     
     Raises:
-<<<<<<< HEAD
-        Exception if model cannot be loaded
-    """
-    global _model
-    
-    if _model is not None:
-        return _model
-    
-    path = model_path or _MODEL_PATH
-    try:
-        _model = joblib.load(path)
-        print(f"Model loaded successfully from {path}")
-        return _model
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        raise
-
-
-def smiles_to_ecfp6(smiles: str, radius: int = 3, n_bits: int = 2048) -> Optional[np.ndarray]:
-=======
         FileNotFoundError: If model file does not exist
         Exception: If model loading fails
     """
@@ -95,18 +46,15 @@ def smiles_to_ecfp6(smiles: str, radius: int = 3, n_bits: int = 2048) -> Optiona
     if _model is None:
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
-        
         try:
             _model = joblib.load(model_path)
             print(f"Model loaded successfully from {model_path}", file=sys.stderr)
         except Exception as e:
             raise Exception(f"Error loading model: {e}")
-    
     return _model
 
 
 def smiles_to_ecfp6(smiles: str, radius: int = ECFP_RADIUS, n_bits: int = ECFP_NBITS) -> Optional[np.ndarray]:
->>>>>>> origin/copilot/add-file-upload-api
     """
     Convert SMILES string to ECFP6 fingerprint.
     
@@ -132,17 +80,12 @@ def smiles_to_ecfp6(smiles: str, radius: int = ECFP_RADIUS, n_bits: int = ECFP_N
         
         return arr
     except Exception as e:
-        print(f"Error converting SMILES to fingerprint: {e}")
+        # Log to stderr to avoid polluting JSON/stdout outputs in CLI/API
+        print(f"Error converting SMILES to fingerprint: {e}", file=sys.stderr)
         return None
 
 
-<<<<<<< HEAD
-def classify_smiles_list(
-    smiles_list: List[str],
-    model=None
-) -> Dict[str, Any]:
-=======
-def classify_smiles(smiles: str, model: Any = None) -> Dict[str, Any]:
+def classify_smiles(smiles: str, model=None) -> Dict[str, Any]:
     """
     Classify a single SMILES string.
     
@@ -162,10 +105,8 @@ def classify_smiles(smiles: str, model: Any = None) -> Dict[str, Any]:
     """
     if model is None:
         model = load_model()
-    
     # Convert SMILES to fingerprint
     fp = smiles_to_ecfp6(smiles)
-    
     if fp is None:
         return {
             "smiles": smiles,
@@ -174,23 +115,18 @@ def classify_smiles(smiles: str, model: Any = None) -> Dict[str, Any]:
             "probability_protein": 0.0,
             "confidence": 0.0,
             "valid": False,
-            "error": "Invalid SMILES string"
+            "error": "Invalid SMILES string",
         }
-    
     # Reshape for prediction
     fp_reshaped = fp.reshape(1, -1)
-    
     # Get prediction and probabilities
     prediction = model.predict(fp_reshaped)[0]
     probabilities = model.predict_proba(fp_reshaped)[0]
-    
     # Assuming class 0 is RNA_binding and class 1 is Protein_binding
     prob_rna = float(probabilities[0])
     prob_protein = float(probabilities[1])
-    
     prediction_label = "RNA_binding" if prediction == 0 else "Protein_binding"
     confidence = float(max(probabilities))
-    
     return {
         "smiles": smiles,
         "prediction": prediction_label,
@@ -198,105 +134,48 @@ def classify_smiles(smiles: str, model: Any = None) -> Dict[str, Any]:
         "probability_protein": prob_protein,
         "confidence": confidence,
         "valid": True,
-        "error": None
+        "error": None,
     }
 
 
-def classify_smiles_list(smiles_list: List[str], model: Any = None) -> Dict[str, Any]:
->>>>>>> origin/copilot/add-file-upload-api
+def classify_smiles_list(smiles_list: List[str], model=None) -> Dict[str, Any]:
     """
     Classify a list of SMILES strings.
     
     Args:
-        smiles_list: List of SMILES strings to classify
-<<<<<<< HEAD
-        model: Pre-loaded model (if None, will load default model)
+        smiles_list (List[str]): SMILES strings to classify.
+        model: Pre-loaded model instance; if None the default model is lazy-loaded.
     
     Returns:
-        Dictionary with 'results' and 'summary' keys containing classification data
+        Dict[str, Any]: {
+            "results": [ { per-molecule classification dicts } ],
+            "summary": { aggregate counts and average confidence }
+        }
     """
-    # Load model if not provided
-=======
-        model: Pre-loaded model (if None, will load from default path)
-    
-    Returns:
-        Dictionary with:
-        - results: List of classification results
-        - summary: Summary statistics
-    """
->>>>>>> origin/copilot/add-file-upload-api
     if model is None:
         model = load_model()
-    
-    results = []
-<<<<<<< HEAD
-    
-    for smiles in smiles_list:
-        # Convert SMILES to fingerprint
-        fp = smiles_to_ecfp6(smiles)
-        
-        if fp is None:
-            results.append({
-                'smiles': smiles,
-                'prediction': 'Invalid',
-                'probability_rna': 0.0,
-                'probability_protein': 0.0,
-                'confidence': 0.0,
-                'valid': False,
-                'error': 'Invalid SMILES string'
-            })
-            continue
-        
-        # Reshape for prediction
-        fp_reshaped = fp.reshape(1, -1)
-        
-        # Get prediction and probabilities
-        prediction = model.predict(fp_reshaped)[0]
-        probabilities = model.predict_proba(fp_reshaped)[0]
-        
-        # Assuming class 0 is RNA_binding and class 1 is Protein_binding
-        prob_rna = float(probabilities[0])
-        prob_protein = float(probabilities[1])
-        
-        prediction_label = "RNA_binding" if prediction == 0 else "Protein_binding"
-        confidence = float(max(probabilities))
-        
-        results.append({
-            'smiles': smiles,
-            'prediction': prediction_label,
-            'probability_rna': prob_rna,
-            'probability_protein': prob_protein,
-            'confidence': confidence,
-            'valid': True,
-            'error': None
-        })
-=======
+
+    results: List[Dict[str, Any]] = []
     for smiles in smiles_list:
         result = classify_smiles(smiles, model)
         results.append(result)
->>>>>>> origin/copilot/add-file-upload-api
-    
+
     # Calculate summary statistics
-    valid_results = [r for r in results if r['valid']]
-    rna_count = sum(1 for r in valid_results if r['prediction'] == "RNA_binding")
-    protein_count = sum(1 for r in valid_results if r['prediction'] == "Protein_binding")
-    avg_confidence = sum(r['confidence'] for r in valid_results) / len(valid_results) if valid_results else 0
-    
+    valid_results = [r for r in results if r["valid"]]
+    rna_count = sum(1 for r in valid_results if r["prediction"] == "RNA_binding")
+    protein_count = sum(1 for r in valid_results if r["prediction"] == "Protein_binding")
+    avg_confidence = (
+        sum(r["confidence"] for r in valid_results) / len(valid_results)
+        if valid_results else 0
+    )
+
     summary = {
         "total": len(results),
         "valid": len(valid_results),
         "invalid": len(results) - len(valid_results),
         "rna_binding": rna_count,
         "protein_binding": protein_count,
-        "average_confidence": round(avg_confidence, 4)
+        "average_confidence": round(avg_confidence, 4),
     }
-    
-    return {
-<<<<<<< HEAD
-        'results': results,
-        'summary': summary
-=======
-        "results": results,
-        "summary": summary
->>>>>>> origin/copilot/add-file-upload-api
-    }
+
+    return {"results": results, "summary": summary}
