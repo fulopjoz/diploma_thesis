@@ -12,6 +12,9 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,28 +30,23 @@ jobs:
           use-mamba: true
 
       - name: Install rdkit via conda
-        run: mamba install -n backend-ci rdkit=2023.9.4 -y
+        run: mamba install -n backend-ci -c conda-forge rdkit=2023.9.4 -y
 
       - name: Export environment (debug)
         run: conda list -n backend-ci
 
       - name: Install pip requirements
         run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate backend-ci
-          python -m pip install -r backend/requirements-ci.txt
+          conda run -n backend-ci python -m pip install --upgrade pip
+          conda run -n backend-ci python -m pip install -r backend/requirements-ci.txt
 
       - name: Run mypy (non-blocking for now)
         run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate backend-ci
-          python -m mypy --config-file mypy.ini backend || true
+          conda run -n backend-ci python -m mypy --config-file mypy.ini backend || true
 
       - name: Run tests with coverage
         run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate backend-ci
-          python -m pytest -q --cov=backend --cov-report=term-missing --cov-report=xml backend/tests
+          conda run -n backend-ci python -m pytest -q --cov=backend --cov-report=term-missing --cov-report=xml backend/tests
 
       - name: Upload coverage to Codecov
         if: always()
