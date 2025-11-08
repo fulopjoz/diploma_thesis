@@ -36,7 +36,10 @@ jobs:
           mamba install -c conda-forge rdkit=2023.9.4 -y
 
       - name: Export environment (debug)
-        run: conda list -n backend-ci
+        run: |
+          conda list -n backend-ci
+          which python || true
+          python --version || true
 
       - name: Install pip requirements
         run: |
@@ -56,8 +59,12 @@ jobs:
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate backend-ci
-          python -m pytest -q --cov=backend --cov-report=term-missing --cov-report=xml backend/tests || exit 1
-          ls -al . | grep coverage || true
+          # Ensure pytest is installed
+          python -m pip show pytest || python -m pip install pytest
+          python -m pytest -q --cov=backend --cov-report=term-missing --cov-report=xml backend/tests
+          echo "Listing coverage artifacts:"
+          ls -al . | grep -E 'coverage|\.coverage' || true
+          test -f coverage.xml || echo "coverage.xml missing" && true
 
       - name: Upload coverage to Codecov
         if: always()
