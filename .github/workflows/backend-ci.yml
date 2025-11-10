@@ -49,6 +49,13 @@ jobs:
           python -m pip install -r backend/requirements-ci.txt
           python -c "import sys; print('Python executable:', sys.executable)"
 
+      - name: Validate environment imports
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate backend-ci
+          python -c "import sys, numpy, pandas, sklearn, xgboost; print('python:', sys.version); print('numpy:', numpy.__version__); print('pandas:', pandas.__version__); print('sklearn:', sklearn.__version__); print('xgboost:', xgboost.__version__)" || exit 1
+          python -c "from rdkit import Chem; from rdkit import RDLogger; RDLogger.DisableLog('rdApp.*'); mol = Chem.MolFromSmiles('c1ccccc1'); print('rdkit basic parse ok' if mol else 'rdkit parse failed'); import rdkit; print('rdkit:', rdkit.__version__)" || exit 1
+
       - name: Run mypy (non-blocking for now)
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
