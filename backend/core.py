@@ -10,7 +10,7 @@ from typing import Optional, List, Dict, Any
 import joblib
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, DataStructs
 from rdkit import RDLogger
 import os
 import sys
@@ -76,7 +76,7 @@ def smiles_to_ecfp6(smiles: str, radius: int = ECFP_RADIUS, n_bits: int = ECFP_N
         
         # Convert to numpy array
         arr = np.zeros((n_bits,), dtype=np.int8)
-        Chem.DataStructs.ConvertToNumpyArray(fp, arr)
+        DataStructs.ConvertToNumpyArray(fp, arr)
         
         return arr
     except Exception as e:
